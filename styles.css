@@ -18,11 +18,15 @@ inset:0;
 background:
 linear-gradient(
 135deg,
-#111118,
-#1b1b2b,
-#2c1d33,
-#111118
+#ffd9ec,
+#ffc2df,
+#ffb1d6,
+#ffd9ec
 );
+background-size:400% 400%;
+animation:bgMove 15s ease infinite;
+z-index:-3;
+}
 background-size:400% 400%;
 animation:bgMove 15s ease infinite;
 z-index:-3;
