@@ -22,9 +22,19 @@ const ORDEN_ESTILOS = [
 
 let clasesDisponibles = [];
 let opcionesHoraActuales = [];
+let diasPermitidosActuales = [];
+
+const NOMBRES_DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 function el(id) {
   return document.getElementById(id);
+}
+
+function textoDiasPermitidos(dias) {
+  const nombres = [...dias].sort((a, b) => a - b).map((d) => NOMBRES_DIAS[d]);
+  if (nombres.length === 1) return `los ${nombres[0]}`;
+  if (nombres.length === 2) return `los ${nombres[0]} y ${nombres[1]}`;
+  return `los ${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
 }
 
 // ---------- selector de edad / precios ----------
@@ -88,6 +98,9 @@ el("selectClase").addEventListener("change", (e) => {
   const selectHora = el("selectHora");
 
   opcionesHoraActuales = clasesDisponibles.filter((c) => c.estilo === estilo);
+  diasPermitidosActuales = [];
+  mostrarAyudaFecha("");
+  mostrarErrorPrueba("");
 
   if (!opcionesHoraActuales.length) {
     selectHora.innerHTML = '<option value="" disabled selected>No hay horarios disponibles</option>';
@@ -99,11 +112,46 @@ el("selectClase").addEventListener("change", (e) => {
   opcionesHoraActuales.forEach((c, i) => {
     const opt = document.createElement("option");
     opt.value = i;
-    opt.textContent = `${c.grupo} — ${c.horarios.join(" y ")}`;
+    opt.textContent = `${c.grupo} — ${c.horarios.map((h) => h.texto).join(" y ")}`;
     selectHora.appendChild(opt);
   });
   selectHora.disabled = false;
 });
+
+el("selectHora").addEventListener("change", (e) => {
+  mostrarErrorPrueba("");
+  const opcion = opcionesHoraActuales[Number(e.target.value)];
+  if (!opcion) {
+    diasPermitidosActuales = [];
+    mostrarAyudaFecha("");
+    return;
+  }
+  diasPermitidosActuales = [...new Set(opcion.horarios.flatMap((h) => h.dias))];
+  if (diasPermitidosActuales.length) {
+    mostrarAyudaFecha(`📅 Esta clase se imparte ${textoDiasPermitidos(diasPermitidosActuales)}. Elige una fecha en uno de esos días.`);
+  } else {
+    mostrarAyudaFecha("");
+  }
+  validarFechaSeleccionada();
+});
+
+function mostrarAyudaFecha(msg) {
+  el("ayudaFecha").textContent = msg || "";
+}
+
+function validarFechaSeleccionada() {
+  const fecha = el("inputFecha").value;
+  if (!fecha || !diasPermitidosActuales.length) return true;
+  const diaSemana = new Date(`${fecha}T00:00:00Z`).getUTCDay();
+  if (!diasPermitidosActuales.includes(diaSemana)) {
+    mostrarErrorPrueba(`Esa fecha no es válida para esta clase. Recuerda que se imparte ${textoDiasPermitidos(diasPermitidosActuales)}.`);
+    return false;
+  }
+  mostrarErrorPrueba("");
+  return true;
+}
+
+el("inputFecha").addEventListener("change", validarFechaSeleccionada);
 
 // ---------- envío del formulario ----------
 
@@ -132,6 +180,10 @@ el("formPrueba").addEventListener("submit", async (e) => {
     return;
   }
 
+  if (!validarFechaSeleccionada()) {
+    return;
+  }
+
   const btn = el("btnReservar");
   btn.disabled = true;
   const textoOriginal = btn.textContent;
@@ -148,7 +200,7 @@ el("formPrueba").addEventListener("submit", async (e) => {
         telefono,
         fecha,
         clase: opcion.grupo,
-        hora: opcion.horarios.join(" y "),
+        hora: opcion.horarios.map((h) => h.texto).join(" y "),
       }),
     });
     const datos = await res.json();
@@ -170,6 +222,8 @@ el("btnAgendarOtra").addEventListener("click", () => {
   el("tarjetaExito").hidden = true;
   el("selectHora").innerHTML = '<option value="" disabled selected>Primero elige una clase</option>';
   el("selectHora").disabled = true;
+  diasPermitidosActuales = [];
+  mostrarAyudaFecha("");
   mostrarErrorPrueba("");
 });
 
