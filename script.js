@@ -5,6 +5,13 @@
 
 const WORKER_URL = "https://portalalumnas.movedancea.workers.dev";
 
+// Esta misma página se usa en dos lugares: la web pública (donde
+// avisamos que la academia se va a comunicar para confirmar) y el
+// botón de Recepción (donde el mensaje puede ser de confirmación
+// directa, porque ahí sí es seguro que la fecha elegida se respeta).
+// Lo distinguimos con data-origen="recepcion" en el <body>.
+const ORIGEN = document.body.dataset.origen === "recepcion" ? "recepcion" : "web";
+
 // Orden en el que queremos mostrar los estilos en el selector (si
 // aparece un estilo nuevo que no está en esta lista, se agrega al
 // final, ordenado alfabéticamente, para que nunca se pierda).
@@ -201,6 +208,7 @@ el("formPrueba").addEventListener("submit", async (e) => {
         fecha,
         clase: opcion.grupo,
         hora: opcion.horarios.map((h) => h.texto).join(" y "),
+        origen: ORIGEN,
       }),
     });
     const datos = await res.json();
